@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/csv"
 	"encoding/json"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -11,33 +12,53 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type Contact struct {
-	Email string
-	Open  int64
-	Link  int64
+// Item type with SKU, Name and Total
+type Item struct {
+	SKU   string `json:"sku"`
+	Name  string `json:"name"`
+	Total int    `json:"total"`
 }
 
-type Contacts []Contact
+type Items struct {
+	Items []Item `json:"items"`
+}
+
+type UntypedJson map[string][]interface{}
 
 func main() {
 	r := gin.Default()
-	r.POST("/ping", func(c *gin.Context) {
-		contactsData := c.PostForm("data")
+	r.GET("/items", func(c *gin.Context) {
+		// Make a get request
+		rs, err := http.Get("http://0.0.0.0:3000/api/items")
 
-		var contacts Contacts
-		json.Unmarshal([]byte(contactsData), &contacts)
+		// Process response
+		if err != nil {
+			panic(err)
+		}
+		defer rs.Body.Close()
+
+		bodyBytes, err := ioutil.ReadAll(rs.Body)
+		if err != nil {
+			panic(err)
+		}
+
+		bodyString := string(bodyBytes)
+
+		var result Items
+		json.Unmarshal([]byte(bodyString), &result)
 
 		b := &bytes.Buffer{}
 		w := csv.NewWriter(b)
 
-		if err := w.Write([]string{"email", "opens"}); err != nil {
+		if err := w.Write([]string{"SKU", "Nama Item", "Jumlah Sekarang"}); err != nil {
 			log.Fatalln("error writing record to csv: ", err)
 		}
 
-		for _, contact := range contacts {
+		for _, value := range result.Items {
 			var record []string
-			record = append(record, contact.Email)
-			record = append(record, strconv.FormatInt(contact.Open, 10))
+			record = append(record, value.SKU)
+			record = append(record, value.Name)
+			record = append(record, strconv.Itoa(value.Total))
 			if err := w.Write(record); err != nil {
 				log.Fatalln("error writing record to csv: ", err)
 			}
@@ -48,9 +69,9 @@ func main() {
 			log.Fatal(err)
 		}
 
-		c.Header("Content-Description", "File Transfer")
-		c.Header("Content-Disposition", "attachment; filename=contacts.csv")
-		c.Data(http.StatusOK, "text/csv", b.Bytes())
+		c.Header("Content-Description", "Catatan Jumlah Barang")
+		c.Header("Content-Disposition", "attachment; filename=toko.csv")
+		c.Data(http.StatusOK, "text/csv; charset=utf-8", b.Bytes())
 	})
 	r.Run() // Listen and serve on 0.0.0.0:8080
 }
