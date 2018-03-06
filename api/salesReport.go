@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/csv"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"math"
@@ -45,7 +44,7 @@ type salesReport struct {
 
 // ExportSalesReport exports Laporan Penjualan in CSV format
 func ExportSalesReport(c *gin.Context) {
-	// Get params
+	// Get mandatory params
 	startdate := c.Query("startdate")
 	enddate := c.Query("enddate")
 
@@ -84,7 +83,14 @@ func ExportSalesReport(c *gin.Context) {
 		return
 	}
 
-	fmt.Println(bodyString)
+	// Optional params
+	// If TRUE, remove T and Z from TimeStamp
+	prettifydate := c.Query("prettifydate")
+	prettify, _ := strconv.ParseBool(prettifydate)
+
+	// If TRUE, format Harga in Rupiah
+	rupiah := c.Query("rupiah")
+	rp, _ := strconv.ParseBool(rupiah)
 
 	var result salesReport
 	json.Unmarshal([]byte(bodyString), &result)
@@ -99,15 +105,8 @@ func ExportSalesReport(c *gin.Context) {
 	WriteCSV(9, []string{
 		"Tanggal", result.Summary.StartDate + " - " + result.Summary.EndDate,
 	})
-	p := message.NewPrinter(message.MatchLanguage("en"))
-	WriteCSV(9, []string{
-		"Total Omzet",
-		"Rp" + p.Sprint(int(math.Round(result.Summary.TotalOmzet))),
-	})
-	WriteCSV(9, []string{
-		"Laba Kotor",
-		"Rp" + p.Sprint(int(math.Round(result.Summary.TotalProfit))),
-	})
+	WriteCSV(9, []string{"Total Omzet", putRupiah(rp, result.Summary.TotalOmzet)})
+	WriteCSV(9, []string{"Laba Kotor", putRupiah(rp, result.Summary.TotalProfit)})
 	WriteCSV(9, []string{
 		"Penjualan", strconv.Itoa(result.Summary.TotalSales),
 	})
@@ -126,14 +125,14 @@ func ExportSalesReport(c *gin.Context) {
 	for _, value := range result.Items {
 		var record []string
 		record = append(record, value.OrderID)
-		record = append(record, convertDate(value.TimeStamp))
+		record = append(record, convertDate(prettify, value.TimeStamp))
 		record = append(record, value.SKU)
 		record = append(record, value.Name)
 		record = append(record, strconv.Itoa(value.Amount))
-		record = append(record, strconv.Itoa(int(math.Round(value.Price))))
-		record = append(record, strconv.Itoa(int(math.Round(value.Omzet))))
-		record = append(record, strconv.Itoa(int(math.Round(value.Purchase))))
-		record = append(record, strconv.Itoa(int(math.Round(value.Profit))))
+		record = append(record, putRupiah(rp, value.Price))
+		record = append(record, putRupiah(rp, value.Omzet))
+		record = append(record, putRupiah(rp, value.Purchase))
+		record = append(record, putRupiah(rp, value.Profit))
 		WriteCSV(9, record)
 	}
 
@@ -157,7 +156,24 @@ func validateParams(c *gin.Context, param string, msg string) bool {
 	return true
 }
 
-func convertDate(timeStamp string) string {
+func convertDate(prettify bool, timeStamp string) string {
+	if !prettify {
+		return timeStamp
+	}
 	dt, _ := time.Parse("2006-01-02T15:04:05Z", timeStamp)
 	return dt.Format("2006-01-02 15:04:05")
+}
+
+func putRupiah(rp bool, value float64) string {
+	p := message.NewPrinter(message.MatchLanguage("en"))
+
+	var result string
+	convertedValue := int(math.Round(value))
+	if rp {
+		result = "Rp" + p.Sprint(convertedValue)
+	} else {
+		result = strconv.Itoa(convertedValue)
+	}
+
+	return result
 }
