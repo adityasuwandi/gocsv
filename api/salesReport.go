@@ -10,6 +10,7 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/text/message"
@@ -57,7 +58,7 @@ func ExportSalesReport(c *gin.Context) {
 	}
 
 	// Construct URL
-	url := BASE_URL + "/penjualan?startdate=" +
+	url := BaseURL + "/penjualan?startdate=" +
 		startdate + "&enddate=" + enddate
 
 	// Make a get request
@@ -125,7 +126,7 @@ func ExportSalesReport(c *gin.Context) {
 	for _, value := range result.Items {
 		var record []string
 		record = append(record, value.OrderID)
-		record = append(record, value.TimeStamp)
+		record = append(record, convertDate(value.TimeStamp))
 		record = append(record, value.SKU)
 		record = append(record, value.Name)
 		record = append(record, strconv.Itoa(value.Amount))
@@ -154,4 +155,9 @@ func validateParams(c *gin.Context, param string, msg string) bool {
 		return false
 	}
 	return true
+}
+
+func convertDate(timeStamp string) string {
+	dt, _ := time.Parse("2006-01-02T15:04:05Z", timeStamp)
+	return dt.Format("2006-01-02 15:04:05")
 }
