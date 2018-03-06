@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"gocsv/api"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -60,18 +62,19 @@ func main() {
 
 		b := &bytes.Buffer{}
 		w = csv.NewWriter(b)
+		api.W = w
 
 		// Summary
-		writeCSV(5, []string{"LAPORAN NILAI BARANG"})
-		writeCSV(5, []string{})
-		writeCSV(5, []string{"Tanggal Cetak", result.Summary.PrintDate})
-		writeCSV(5, []string{"Jumlah SKU", strconv.Itoa(result.Summary.TotalSKU)})
-		writeCSV(5, []string{"Jumlah Total Barang", strconv.Itoa(result.Summary.TotalAmount)})
-		writeCSV(5, []string{"Total Nilai", "Rp" + strconv.Itoa(int(math.Round(result.Summary.TotalValue)))})
-		writeCSV(5, []string{})
+		api.WriteCSV(5, []string{"LAPORAN NILAI BARANG"})
+		api.WriteCSV(5, []string{})
+		api.WriteCSV(5, []string{"Tanggal Cetak", result.Summary.PrintDate})
+		api.WriteCSV(5, []string{"Jumlah SKU", strconv.Itoa(result.Summary.TotalSKU)})
+		api.WriteCSV(5, []string{"Jumlah Total Barang", strconv.Itoa(result.Summary.TotalAmount)})
+		api.WriteCSV(5, []string{"Total Nilai", "Rp" + strconv.Itoa(int(math.Round(result.Summary.TotalValue)))})
+		api.WriteCSV(5, []string{})
 
 		// Header
-		writeCSV(5, []string{
+		api.WriteCSV(5, []string{
 			"SKU",
 			"Nama Item",
 			"Jumlah",
@@ -87,7 +90,7 @@ func main() {
 			record = append(record, strconv.Itoa(value.Amount))
 			record = append(record, strconv.Itoa(int(math.Round(value.Price))))
 			record = append(record, strconv.Itoa(int(math.Round(value.Value))))
-			writeCSV(5, record)
+			api.WriteCSV(5, record)
 		}
 
 		w.Flush()
@@ -100,14 +103,4 @@ func main() {
 		c.Data(http.StatusOK, "text/csv", b.Bytes())
 	})
 	r.Run() // Listen and serve on 0.0.0.0:8080
-}
-
-func writeCSV(column int, values []string) {
-	record := make([]string, column)
-	for i, value := range values {
-		record[i] = value
-	}
-	if err := w.Write(record); err != nil {
-		log.Fatalln("error writing record to csv: ", err)
-	}
 }
