@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/text/message"
 )
 
 // Laporan Nilai Barang
@@ -63,8 +64,14 @@ func ExportItemReport(c *gin.Context) {
 	WriteCSV(5, []string{})
 	WriteCSV(5, []string{"Tanggal Cetak", result.Summary.PrintDate})
 	WriteCSV(5, []string{"Jumlah SKU", strconv.Itoa(result.Summary.TotalSKU)})
-	WriteCSV(5, []string{"Jumlah Total Barang", strconv.Itoa(result.Summary.TotalAmount)})
-	WriteCSV(5, []string{"Total Nilai", "Rp" + strconv.Itoa(int(math.Round(result.Summary.TotalValue)))})
+	WriteCSV(5, []string{
+		"Jumlah Total Barang", strconv.Itoa(result.Summary.TotalAmount),
+	})
+	p := message.NewPrinter(message.MatchLanguage("en"))
+	WriteCSV(5, []string{
+		"Total Nilai",
+		"Rp" + p.Sprint(int(math.Round(result.Summary.TotalValue))),
+	})
 	WriteCSV(5, []string{})
 
 	// Header
