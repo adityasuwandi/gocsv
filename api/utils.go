@@ -5,6 +5,9 @@ import (
 	"log"
 )
 
+// BaseURL requests to other microservice
+const BaseURL = "http://0.0.0.0:3000/api"
+
 // W writer to produce CSV
 var W *csv.Writer
 

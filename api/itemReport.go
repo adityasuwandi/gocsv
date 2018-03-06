@@ -38,7 +38,7 @@ type report struct {
 // ExportItemReport exports Nilai Barang in CSV format
 func ExportItemReport(c *gin.Context) {
 	// Make a get request
-	rs, err := http.Get("http://0.0.0.0:3000/api/nilaibarang")
+	rs, err := http.Get(BaseURL + "/nilaibarang")
 
 	// Process response
 	if err != nil {
